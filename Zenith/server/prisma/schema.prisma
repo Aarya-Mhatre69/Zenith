@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(cuid())
+  username     String      @unique
+  email        String      @unique
+  passwordHash String
+  bio          String?
+  avatarUrl    String?
+  travelScore  Int         @default(0)
+  badges       Badge[]
+  posts        Post[]
+  itineraries  Itinerary[]
+  following    Follow[]    @relation("following")
+  followers    Follow[]    @relation("followers")
+  saves        Save[]
+  likes        Like[]
+  comments     Comment[]
+  createdAt    DateTime    @default(now())
+}
+
+model Post {
+  id          String       @id @default(cuid())
+  author      User         @relation(fields: [authorId], references: [id])
+  authorId    String
+  title       String
+  body        String
+  photos      String[]
+  destination String
+  country     String?
+  duration    Int
+  budget      BudgetTier
+  travelStyle TravelStyle[]
+  hashtags    String[]
+  likes       Like[]
+  comments    Comment[]
+  saves       Save[]
+  itinerary   Itinerary?   @relation(fields: [itineraryId], references: [id])
+  itineraryId String?
+  createdAt   DateTime     @default(now())
+}
+
+model Itinerary {
+  id            String         @id @default(cuid())
+  title         String
+  destination   String
+  days          Int
+  budget        BudgetTier
+  estimatedCost Float?
+  rating        Float?         @default(0)
+  saveCount     Int            @default(0)
+  days_data     ItineraryDay[]
+  author        User           @relation(fields: [authorId], references: [id])
+  authorId      String
+  posts         Post[]
+  saves         Save[]
+  isAiGenerated Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+}
+
+model ItineraryDay {
+  id          String     @id @default(cuid())
+  itinerary   Itinerary  @relation(fields: [itineraryId], references: [id])
+  itineraryId String
+  dayNumber   Int
+  theme       String?
+  activities  Activity[]
+}
+
+model Activity {
+  id            String       @id @default(cuid())
+  day           ItineraryDay @relation(fields: [dayId], references: [id])
+  dayId         String
+  timeOfDay     TimeOfDay
+  name          String
+  description   String
+  location      String
+  duration      String
+  estimatedCost Float?
+  emoji         String?
+  tips          String?
+  lat           Float?
+  lng           Float?
+}
+
+model Badge {
+  id     String @id @default(cuid())
+  name   String
+  icon   String
+  desc   String @default("")
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+}
+
+model Follow {
+  follower    User   @relation("following", fields: [followerId], references: [id])
+  followerId  String
+  following   User   @relation("followers", fields: [followingId], references: [id])
+  followingId String
+
+  @@id([followerId, followingId])
+}
+
+model Like {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String
+
+  @@id([userId, postId])
+}
+
+model Save {
+  id          String     @id @default(cuid())
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  post        Post?      @relation(fields: [postId], references: [id])
+  postId      String?
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id])
+  itineraryId String?
+
+  @@unique([userId, postId])
+  @@unique([userId, itineraryId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  createdAt DateTime @default(now())
+}
+
+enum BudgetTier {
+  BACKPACKER
+  BUDGET
+  MID_RANGE
+  LUXURY
+}
+
+enum TravelStyle {
+  ADVENTURE
+  CULTURE
+  FOOD
+  RELAXATION
+  NATURE
+  NIGHTLIFE
+}
+
+enum TimeOfDay {
+  MORNING
+  AFTERNOON
+  EVENING
+}
